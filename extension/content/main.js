@@ -81,6 +81,12 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
         } catch (err) {
           sendResponse({ ok: false, reason: "element_missing" });
         }
+      } else if (msg.type === "FLOW_TOGGLE_VOICE") {
+        globalThis.FlowArrow.voice.toggle();
+        sendResponse({ ok: true });
+      } else if (msg.type === "FLOW_VOICE_STATE") {
+        globalThis.FlowArrow.voice.onState(msg);
+        sendResponse({ ok: true });
       } else if (msg.type === "FLOW_ERROR") {
         const host = document.querySelector("flow-arrow-root");
         if (host) host.style.visibility = "";
