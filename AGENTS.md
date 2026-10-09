@@ -55,6 +55,14 @@ Rules:
 4. Integration: PR to `main` at H4 / H8 / H12. PR body lists files touched, contract touched (must be no), how tested. Human reviews 5 min, merges, everyone pulls.
 5. Secrets (`GEMMA_API_KEY`) live only on Person B laptop in `server/.env`. Never commit, never log, never put in extension.
 
+## Journal protocol (every commit leaves a trace)
+
+1. Every commit includes exactly one new `notes/journal/<UTC-timestamp>-<owner>-<slug>.md` fragment, staged in the same commit. Copy `notes/journal/TEMPLATE.md`. Never edit an existing fragment - always a new file, so concurrent commits from 3 laptops merge cleanly.
+2. Fragment shape (5 lines): What / Why / Test / Contracts touched (no, or `PROPOSAL: <diff>` then stop) / Next-Blockers. No keys, tokens, tunnel URLs, or passwords in fragments.
+3. `notes/PROGRESS.md` is the checkpoint rollup, rewritten by Person C at H4/H8/H12 from the journal + `git log`. Sections: Done / Numbers / Known issues / Next. Only Person C rewrites it.
+4. Reading protocol after every `git pull`: `ls notes/journal | tail -5`, read the new fragments, read `PROGRESS.md` top. Under 1 minute.
+5. Personal mess goes in `notes/scratch-<name>.md` (gitignored, never committed).
+
 ## Commit rules
 
 - Short factual messages describing what changed and why. Example: `Add NE/EN toggle to widget` or `Clamp screenshot to 1024px for stage wifi`.

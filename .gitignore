@@ -5,4 +5,5 @@ node_modules/
 demo-apps/*/node_modules/
 demo-apps/*/dist/
 scripts/e2e/.out/
+notes/scratch-*
 .DS_Store
