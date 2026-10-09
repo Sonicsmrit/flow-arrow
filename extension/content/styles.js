@@ -31,4 +31,10 @@ globalThis.FlowArrow.styles = [
   "  background: #26235C; color: #fff; border-radius: 999px; padding: 10px 14px;",
   "  font-family: 'FlowArrow Atkinson Hyperlegible', 'Noto Sans Devanagari', system-ui, sans-serif;",
   "}",
+  ".flow-arrow-box {",
+  "  position: fixed; left: 0; top: 0; z-index: 2147483646; pointer-events: none;",
+  "  border: 4px solid #FFD23F; border-radius: 12px;",
+  "  box-shadow: 0 0 0 9999px rgba(20,18,56,0.52), 0 0 18px rgba(255,210,63,0.8);",
+  "}",
+  ".flow-arrow-box.flow-arrow-on { opacity: 1; }",
 ].join("\n");

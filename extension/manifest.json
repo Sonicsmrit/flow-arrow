@@ -14,6 +14,7 @@
         "content/styles.js",
         "content/icons.js",
         "content/scanner.js",
+        "content/overlay.js",
         "content/widget.js",
         "content/main.js"
       ],
