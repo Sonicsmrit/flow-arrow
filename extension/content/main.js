@@ -17,14 +17,57 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
 
     globalThis.FlowArrow.widget.build(shadow);
 
-    // Minimal inbound handlers so Person B messages never throw.
-    // Full overlay/watcher wiring lands in later steps.
+    // Inbound handlers for Person B step loop (section 6.3).
     chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       if (!msg || typeof msg.type !== "string") return;
-      if (msg.type === "FLOW_THINKING") {
+      if (msg.type === "FLOW_PREPARE_CAPTURE") {
+        // Hide all UI so the model never sees it, scan, reply, stay hidden.
+        const host = document.querySelector("flow-arrow-root");
+        if (host) host.style.visibility = "hidden";
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          try {
+            const result = globalThis.FlowArrow.scanner.scan();
+            if (host) host.style.visibility = "";
+            sendResponse({ ok: true, scanId: result.scanId, page: result.page, elements: result.elements });
+          } catch (err) {
+            if (host) host.style.visibility = "";
+            sendResponse({ ok: false, error: String(err) });
+          }
+        }));
+        return true;
+      } else if (msg.type === "FLOW_THINKING") {
+        const host = document.querySelector("flow-arrow-root");
+        if (host) host.style.visibility = "";
         if (DEBUG) console.debug("[FlowArrow] thinking", msg.turn);
         sendResponse({ ok: true });
+      } else if (msg.type === "FLOW_STEP") {
+        const host = document.querySelector("flow-arrow-root");
+        if (host) host.style.visibility = "";
+        try {
+          const el = msg.step.elementId != null
+            ? globalThis.FlowArrow.scanner.getElement(msg.step.elementId)
+            : null;
+          if (msg.step.elementId != null && !el) {
+            sendResponse({ ok: false, reason: "element_missing" });
+            return;
+          }
+          globalThis.FlowArrow.overlay.showStep(msg.step, el, msg.turn);
+          if (globalThis.FlowArrow.speech && msg.step) {
+            globalThis.FlowArrow.speech.maybeSpeak(msg.step.instruction);
+          }
+          sendResponse({ ok: true });
+        } catch (err) {
+          sendResponse({ ok: false, reason: "element_missing" });
+        }
+      } else if (msg.type === "FLOW_ERROR") {
+        const host = document.querySelector("flow-arrow-root");
+        if (host) host.style.visibility = "";
+        globalThis.FlowArrow.overlay.clear();
+        sendResponse({ ok: true });
       } else if (msg.type === "FLOW_ENDED" || msg.type === "FLOW_DONE") {
+        const host = document.querySelector("flow-arrow-root");
+        if (host) host.style.visibility = "";
+        globalThis.FlowArrow.overlay.clear();
         globalThis.FlowArrow.widget.render(shadow, false);
         sendResponse({ ok: true });
       }

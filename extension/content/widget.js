@@ -109,5 +109,32 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
     launcher.textContent = open ? "\u2304" : "\u2794";
   }
 
-  globalThis.FlowArrow.widget = { build, render, getLang };
+  function rect() {
+    const shadow = globalThis.FlowArrow._shadow;
+    if (!shadow) return null;
+    const card = shadow.querySelector(".fa-card");
+    const launcher = shadow.querySelector(".fa-launcher");
+    const target = (card && card.style.display !== "none") ? card : launcher;
+    if (!target) return null;
+    const r = target.getBoundingClientRect();
+    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+  }
+
+  function avoid(ring) {
+    const shadow = globalThis.FlowArrow._shadow;
+    if (!shadow) return;
+    const card = shadow.querySelector(".fa-card");
+    if (!card || card.style.display === "none" || !ring) return;
+    const r = card.getBoundingClientRect();
+    const overlap = !(r.right < ring.left || r.left > ring.right || r.bottom < ring.top || r.top > ring.bottom);
+    if (overlap) {
+      card.style.right = "auto";
+      card.style.left = "20px";
+    } else {
+      card.style.left = "";
+      card.style.right = "20px";
+    }
+  }
+
+  globalThis.FlowArrow.widget = { build, render, getLang, rect, avoid };
 })();
