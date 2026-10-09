@@ -10,6 +10,7 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
     document.documentElement.appendChild(host);
     const shadow = host.attachShadow({ mode: "closed" });
     globalThis.FlowArrow._shadow = shadow;
+    globalThis.FlowArrow.host = host;
 
     const style = document.createElement("style");
     style.textContent = globalThis.FlowArrow.styles || "";
@@ -55,6 +56,27 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
           if (globalThis.FlowArrow.speech && msg.step) {
             globalThis.FlowArrow.speech.maybeSpeak(msg.step.instruction);
           }
+          // Arm the watcher: first outcome reports instantly, then settle,
+          // then FLOW_READY with the NEW turn number (section 10).
+          globalThis.FlowArrow.watcher.arm(msg.step, el, (outcome) => {
+            if (outcome === "completed" || outcome === "confirmed") {
+              globalThis.FlowArrow.overlay.complete();
+            } else {
+              globalThis.FlowArrow.overlay.clear();
+            }
+            try {
+              chrome.runtime.sendMessage({ type: "FLOW_STEP_RESULT", turn: msg.turn, outcome });
+            } catch {
+              // SW gone, ignore
+            }
+            globalThis.FlowArrow.dom.waitForSettle().then(() => {
+              try {
+                chrome.runtime.sendMessage({ type: "FLOW_READY", turn: msg.turn + 1 });
+              } catch {
+                // SW gone, ignore
+              }
+            });
+          });
           sendResponse({ ok: true });
         } catch (err) {
           sendResponse({ ok: false, reason: "element_missing" });
@@ -62,11 +84,13 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
       } else if (msg.type === "FLOW_ERROR") {
         const host = document.querySelector("flow-arrow-root");
         if (host) host.style.visibility = "";
+        globalThis.FlowArrow.watcher.disarm();
         globalThis.FlowArrow.overlay.clear();
         sendResponse({ ok: true });
       } else if (msg.type === "FLOW_ENDED" || msg.type === "FLOW_DONE") {
         const host = document.querySelector("flow-arrow-root");
         if (host) host.style.visibility = "";
+        globalThis.FlowArrow.watcher.disarm();
         globalThis.FlowArrow.overlay.clear();
         globalThis.FlowArrow.widget.render(shadow, false);
         sendResponse({ ok: true });
