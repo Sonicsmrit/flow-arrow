@@ -19,6 +19,7 @@ Flow Arrow supports Nepali end to end: Nepali typed goals, Nepali voice input, N
 - If something unrelated looks broken or risky, tell the user immediately and propose a fix.
 - After a change: run `node scripts/e2e/suite.mjs --smoke` (about 1 minute); the full suite (`--runs 3`) only for big changes. Keep `notes/PROGRESS.md` truthful if it exists.
 - Write commit messages as original Flow Arrow work describing what changed and why. Keep messages short and factual.
+- Git is direct to `main`, and every agent on every laptop may push and pull. Order is fixed: `git pull --rebase origin main` first, then commit owned files plus one new `notes/journal/` fragment, then `git push origin main`. Never force-push `main`. If a push is rejected, rebase and push again. Check `git status --short` before pushing and stage only intended files.
 
 ## Naming
 
@@ -42,3 +43,4 @@ Flow Arrow supports Nepali end to end: Nepali typed goals, Nepali voice input, N
 - Secrets live only in `server/.env` (gitignored): `GEMMA_API_KEY` for the hosted Gemma 4 model. Never print, log, or commit secrets, and never put them in the extension.
 - Server edits: restart `npm run dev` by hand after editing `server/*.ts` or `server/.env` (`node --watch` silently loses track of files saved by replacement). To stop it from a shell use `pkill -f "[n]ode --watch"` (the bracket stops pkill from matching your own shell).
 - Model: `MODEL_PROVIDER=gemma` in `server/.env` (hosted Gemma 4 vision + text model).
+- Repo: `https://github.com/Sonicsmrit/flow-arrow.git` (public, branch `main`). Teammates are collaborators with push access; each laptop runs `gh auth login` once so agent pushes work non-interactively. Pull needs no auth.

@@ -52,7 +52,7 @@ Rules:
    - `server/logs/<ts>-<session>-<turn>/screenshot.jpg + request.json + response.json`
 2. If you need a contract change, output `PROPOSAL: <diff>` and STOP. Do not edit. Human approves.
 3. Backend sharing: Person B exposes `http://0.0.0.0:8787` via Tailscale or `ngrok http 8787`. URL goes in `config.local.json` (gitignored) + pinned chat. A/C set `BACKEND_URL` there.
-4. Integration: PR to `main` at H4 / H8 / H12. PR body lists files touched, contract touched (must be no), how tested. Human reviews 5 min, merges, everyone pulls.
+4. Sync: direct to `main`, no PR gate. Push any time; at H4/H8/H12 everyone runs `git pull --rebase origin main`, reads the new journal fragments + PROGRESS.md top, and the humans do a 5 min review on a call. No feature branches unless a change is risky - then branch `wip/<owner>-<slug>` and merge via fast-forward after review.
 5. Secrets (`GEMMA_API_KEY`) live only on Person B laptop in `server/.env`. Never commit, never log, never put in extension.
 
 ## Journal protocol (every commit leaves a trace)
@@ -62,6 +62,17 @@ Rules:
 3. `notes/PROGRESS.md` is the checkpoint rollup, rewritten by Person C at H4/H8/H12 from the journal + `git log`. Sections: Done / Numbers / Known issues / Next. Only Person C rewrites it.
 4. Reading protocol after every `git pull`: `ls notes/journal | tail -5`, read the new fragments, read `PROGRESS.md` top. Under 1 minute.
 5. Personal mess goes in `notes/scratch-<name>.md` (gitignored, never committed).
+
+## Git access (all agents may push and pull)
+
+Repo: `https://github.com/Sonicsmrit/flow-arrow.git`, public, single branch `main`.
+
+1. One-time per laptop: accept the collaborator invite (gives `push` permission), then `gh auth login` (GitHub.com, HTTPS) and verify with `git ls-remote origin` showing refs with no password prompt. Agents push non-interactively after this - if a push asks for credentials, stop and tell the human instead of pasting tokens into commands.
+2. Clone: `git clone https://github.com/Sonicsmrit/flow-arrow.git`. Pull needs no auth (public repo); push needs the invite + login above.
+3. Every push follows this order, no exceptions: `git pull --rebase origin main` first, then commit (owned files + one new journal fragment), then `git push origin main`.
+4. NEVER `push --force` on `main`. A rejected push means someone landed first: `git pull --rebase origin main`, resolve, push again. Journal fragments never conflict by design (unique filenames, never edited). If `notes/PROGRESS.md` conflicts, Person C resolves; everyone else takes their side and re-applies.
+5. Before pushing, run `git status --short` and `git diff --cached --stat`: stage only your owned files + your one fragment. Unrelated or unreviewed files never ride along.
+6. No secrets in commits or fragments, ever: no keys, tokens, tunnel URLs, or passwords. `server/.env` and `config.local.json` are gitignored for this reason.
 
 ## Commit rules
 
