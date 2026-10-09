@@ -5,5 +5,24 @@
   "description": "Step-by-step visual guide for any website, in English and Nepali.",
   "background": { "service_worker": "background.js", "type": "module" },
   "permissions": ["storage", "tabs", "activeTab", "scripting", "offscreen"],
-  "host_permissions": ["<all_urls>"]
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "content/config.js",
+        "content/styles.js",
+        "content/widget.js",
+        "content/main.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "commands": {
+    "toggle-voice": {
+      "suggested_key": { "default": "Alt+X" },
+      "description": "Talk to Flow Arrow (press again to finish)"
+    }
+  }
 }
