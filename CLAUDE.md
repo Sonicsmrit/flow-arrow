@@ -9,7 +9,7 @@ Flow Arrow supports Nepali end to end: Nepali typed goals, Nepali voice input, N
 1. `README.md` - what Flow Arrow is, how to run and test it.
 2. `docs/ARCHITECTURE.md` - decisions, components, exact data contracts. Treat section 6 (contracts) as law; code comments refer to its section numbers.
 3. `docs/MOCK-APPS.md` when a change touches the demo apps.
-4. `notes/` (committed): `PROGRESS.md` (checkpoint rollup: Done / Numbers / Known issues / Next), `journal/` (one fragment per commit - read the newest 5 after every `git pull`), `REUSE.md` (per-file reuse verdicts), `scratch-<name>.md` (gitignored personal mess, never committed).
+4. `notes/` (committed): `PROGRESS.md` (checkpoint rollup: Done / Numbers / Known issues / Next), `journal/` (one fragment per commit - read the newest 5 after every `git pull`), `scratch-<name>.md` (gitignored personal mess, never committed).
 
 ## Working rules
 
