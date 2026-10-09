@@ -1,0 +1,4 @@
+{
+  "_note": "Copy to config.local.json (gitignored). Points your extension at whoever runs the backend (Person B via Tailscale/ngrok).",
+  "BACKEND_URL": "http://localhost:8787"
+}

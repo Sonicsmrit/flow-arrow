@@ -1,0 +1,29 @@
+{
+  "_note": "Offline fake responses so Person A can build the overlay without a model key. Person B replaces with live /next-step.",
+  "fakeSteps": [
+    {
+      "match": "first turn, any goal",
+      "step": {
+        "reasoning": "stub",
+        "action": "click",
+        "elementId": 1,
+        "scrollDirection": null,
+        "instruction": "Click the first button.",
+        "confidence": "low",
+        "done": false
+      }
+    },
+    {
+      "match": "fallback",
+      "step": {
+        "reasoning": "stub",
+        "action": "info",
+        "elementId": null,
+        "scrollDirection": null,
+        "instruction": "Stub mode: backend not connected yet.",
+        "confidence": "low",
+        "done": false
+      }
+    }
+  ]
+}

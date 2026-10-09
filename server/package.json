@@ -1,0 +1,17 @@
+{
+  "name": "flow-arrow-server",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node --watch --env-file=.env server.ts",
+    "start": "node --env-file=.env server.ts",
+    "try": "node --env-file=.env scripts/try-fixture.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.0"
+  }
+}

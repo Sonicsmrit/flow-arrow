@@ -1,0 +1,8 @@
+server/.env
+config.local.json
+server/logs/
+node_modules/
+demo-apps/*/node_modules/
+demo-apps/*/dist/
+scripts/e2e/.out/
+.DS_Store
