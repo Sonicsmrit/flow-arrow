@@ -22,7 +22,9 @@ export type ProviderAnswer = {
 
 // Anti-429: minimum gap between model call starts. Serializes bursts from
 // retries, concurrent turns, and rapid testing into a safe cadence.
-const MIN_GAP_MS = 4000;
+// Tuned 2026-10-09: 4.0s -> 2.5s (zero 429s observed at natural ~4.5s spacing;
+// 8s backoff retry stands behind it). Revert to 4000 on any 429 within 10 calls.
+const MIN_GAP_MS = 2500;
 let lastStart = 0;
 
 async function gapGate(): Promise<void> {
