@@ -37,4 +37,12 @@ globalThis.FlowArrow.styles = [
   "  box-shadow: 0 0 0 9999px rgba(20,18,56,0.52), 0 0 18px rgba(255,210,63,0.8);",
   "}",
   ".flow-arrow-box.flow-arrow-on { opacity: 1; }",
+  ".flow-arrow-cursor {",
+  "  position: fixed; left: 0; top: 0; z-index: 2147483647; pointer-events: none;",
+  "  opacity: 1; transition: opacity 200ms;",
+  "}",
+  ".flow-arrow-cursor.flow-arrow-gliding { transition: transform 800ms cubic-bezier(.3,.7,.2,1); }",
+  ".flow-arrow-cursor.flow-arrow-near { opacity: 0.3; }",
+  ".flow-arrow-box.flow-arrow-pulse { animation: fa-pulse 1.6s infinite; }",
+  "@keyframes fa-pulse { 50% { box-shadow: 0 0 0 9999px rgba(20,18,56,0.52), 0 0 28px rgba(255,210,63,1); } }",
 ].join("\n");
