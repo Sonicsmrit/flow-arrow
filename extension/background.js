@@ -95,13 +95,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-chrome.commands.onCommand.addListener(async (command) => {
-  if (command !== "toggle-voice") return;
-  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (activeTab) {
-    chrome.tabs.sendMessage(activeTab.id, { type: "FLOW_TOGGLE_VOICE" }, () => void chrome.runtime.lastError);
-  }
-});
+if (chrome.commands && chrome.commands.onCommand) {
+  chrome.commands.onCommand.addListener(async (command) => {
+    if (command !== "toggle-voice") return;
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab) {
+      chrome.tabs.sendMessage(activeTab.id, { type: "FLOW_TOGGLE_VOICE" }, () => void chrome.runtime.lastError);
+    }
+  });
+}
 
 chrome.tabs.onRemoved.addListener((tabId) => forgetTab(tabId));
 
