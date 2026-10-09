@@ -20,7 +20,19 @@ export type ProviderAnswer = {
   outputTokens?: number;
 };
 
+// Anti-429: minimum gap between model call starts. Serializes bursts from
+// retries, concurrent turns, and rapid testing into a safe cadence.
+const MIN_GAP_MS = 4000;
+let lastStart = 0;
+
+async function gapGate(): Promise<void> {
+  const wait = MIN_GAP_MS - (Date.now() - lastStart);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  lastStart = Date.now();
+}
+
 export async function getNextStep(req: NextStepRequest, extraNote?: string): Promise<ProviderAnswer> {
+  await gapGate();
   const result = await active.getNextStep(req, extraNote);
   return { step: result.step, provider: active.name, model: active.model, outputTokens: result.outputTokens };
 }

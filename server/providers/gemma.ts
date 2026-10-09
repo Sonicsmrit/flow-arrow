@@ -90,7 +90,17 @@ export function createGemmaProvider(model = process.env.GEMMA_MODEL || DEFAULT_G
     name: "gemma",
     model,
     getNextStep(req, extraNote, signal) {
-      return withParseRetry("gemma", () => callOnce(req, extraNote, signal));
+      const run = () => withParseRetry("gemma", () => callOnce(req, extraNote, signal));
+      return run().catch(async (err) => {
+        // Anti-429: transient rate limits clear in seconds. One hidden retry
+        // with backoff; a second failure surfaces as retryable ("Try again").
+        if (err instanceof ProviderError && err.retryable && /rate limit|429|quota/i.test(err.message)) {
+          console.warn("gemma: 429, backing off once before retrying");
+          await new Promise((r) => setTimeout(r, 8000 + Math.random() * 2000));
+          return run();
+        }
+        throw err;
+      });
     },
   };
 }
