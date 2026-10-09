@@ -29,5 +29,11 @@
       "suggested_key": { "default": "Alt+X" },
       "description": "Talk to Flow Arrow (press again to finish)"
     }
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["fonts/*.woff2"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

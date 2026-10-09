@@ -4,6 +4,25 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
 (function () {
   const DEBUG = false;
 
+  // Atkinson Hyperlegible for our UI. An @font-face inside a shadow root
+  // does not load in Chrome, so faces are added to the document font set
+  // under our own family name. Bytes come from the content script (not a
+  // url() the page CSP could block); on failure the fallbacks apply.
+  function loadFonts() {
+    const FAMILY = "FlowArrow Atkinson Hyperlegible";
+    for (const weight of ["400", "700"]) {
+      try {
+        fetch(chrome.runtime.getURL(`fonts/atkinson-hyperlegible-${weight}.woff2`))
+          .then((r) => r.arrayBuffer())
+          .then((buf) => new FontFace(FAMILY, buf, { weight, style: "normal" }).load())
+          .then((face) => document.fonts.add(face))
+          .catch((err) => console.debug("[FlowArrow] font not loaded:", weight, String(err)));
+      } catch (err) {
+        console.debug("[FlowArrow] font not loaded:", weight, String(err));
+      }
+    }
+  }
+
   function mount() {
     if (document.querySelector("flow-arrow-root")) return;
     const host = document.createElement("flow-arrow-root");
@@ -116,4 +135,5 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
   } else {
     mount();
   }
+  loadFonts();
 })();
