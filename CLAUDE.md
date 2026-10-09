@@ -44,3 +44,35 @@ Flow Arrow supports Nepali end to end: Nepali typed goals, Nepali voice input, N
 - Server edits: restart `npm run dev` by hand after editing `server/*.ts` or `server/.env` (`node --watch` silently loses track of files saved by replacement). To stop it from a shell use `pkill -f "[n]ode --watch"` (the bracket stops pkill from matching your own shell).
 - Model: `MODEL_PROVIDER=gemma` in `server/.env` (hosted Gemma 4 vision + text model).
 - Repo: `https://github.com/Sonicsmrit/flow-arrow.git` (public, branch `main`). Teammates are collaborators with push access; each laptop runs `gh auth login` once so agent pushes work non-interactively. Pull needs no auth.
+
+## Hackathon checklists
+
+File ownership follows `AGENTS.md` (A = Extension UI, B = Brain + Model, C = Voice + Demo + Show). Ports frozen: backend `8787`, whisper `8790`, hub `3000`, bank `3001`.
+
+### Person A - Extension UI
+
+- [ ] Widget opens from launcher + `Alt+X`, goal send works (`content/widget.js`)
+- [ ] NE/EN toggle flips caption language, persists across reload
+- [ ] Speaker toggle reads caption via `speechSynthesis` with `ne-NP` / `en-US`
+- [ ] Overlay: ring + dim + arrow glide + caption never covers target (`content/overlay.js`, `content/config.js`)
+- [ ] Scanner max 100 elements, no values; Devanagari font stack set
+- [ ] Reload check: `chrome://extensions` -> reload -> refresh demo page
+
+### Person B - Brain + Model
+
+Setup: `cd server && npm install && npm run dev`, check `curl http://localhost:8787/health`.
+
+- [ ] `POST /next-step` returns ONE step, existing elementId only, instruction in `req.lang`
+- [ ] `decide.ts` retries once on bad id, fake `done:true` never accepted
+- [ ] `POST /transcribe` forwards `audio/webm`, returns `{ok, text, lang}`
+- [ ] Every turn logs `server/logs/<ts>-<session>-<turn>/screenshot.jpg + response.json`
+- [ ] `npm run typecheck` clean
+
+### Person C - Voice + Demo + Show
+
+Setup: `cd demo-apps && docker compose up -d --build`, then `cd scripts/e2e && bash setup.sh && node suite.mjs --smoke`.
+
+- [ ] Whisper Nepali on `:8790` green; TTS fallback to text-only if no `ne-NP` voice
+- [ ] Hub `:3000` + Bank `:3001` green, login `eluu / 1234`, `/reset` works
+- [ ] Flow A: "pay my credit card bill", Flow B: Nepali goal, Flow C: "tell me" balance goal
+- [ ] `node suite.mjs --smoke` passes, backup video exported

@@ -78,3 +78,50 @@ Repo: `https://github.com/Sonicsmrit/flow-arrow.git`, public, single branch `mai
 
 - Short factual messages describing what changed and why. Example: `Add NE/EN toggle to widget` or `Clamp screenshot to 1024px for stage wifi`.
 - One logical change per commit. Stage only your owned files.
+
+## Hackathon checklists
+
+### Person A - Extension UI
+
+- [ ] Widget opens from launcher + `Alt+X`, goal send works (`content/widget.js`)
+- [ ] NE/EN toggle flips caption language, persists across reload
+- [ ] Speaker toggle reads caption via `speechSynthesis` with `ne-NP` / `en-US`, no server call
+- [ ] Mic flow: idle -> recording (red pulse) -> transcribing (spinner) -> auto-send (`content/voice.js`)
+- [ ] Overlay: ring + dim + arrow glide + caption never covers target (`content/overlay.js`, `content/config.js`)
+- [ ] Scanner max 100 elements for stage speed, labels max 80 chars, no values (`content/scanner.js`)
+- [ ] Devanagari font stack set, `prefers-reduced-motion` disables glide
+- [ ] Reload check: `chrome://extensions` -> reload -> refresh demo page
+- [ ] Record 20s video: goal -> ring -> click -> next ring
+
+Done when: ring is pixel-exact on Bank app, Nepali caption readable.
+
+### Person B - Brain + Model
+
+Setup: `cd server && npm install && npm run dev`, check `curl http://localhost:8787/health`.
+
+- [ ] `GET /health` returns `{ok, provider, model}` (`server.ts`)
+- [ ] `POST /next-step` takes `{sessionId, turn, goal, lang, page, elements, history, screenshot}`, history last 6, screenshot JPEG max 1024px
+- [ ] Prompt forces ONE step, existing elementId only, instruction always in `req.lang` (`prompt.ts`)
+- [ ] `decide.ts` retries once on bad id, text landmark misuse, fake `done:true`
+- [ ] p50 model under 2s, `maxTokens` 300, temp 0
+- [ ] `POST /transcribe` forwards `audio/webm`, returns `{ok, text, lang}` (`transcribe.ts`)
+- [ ] Every turn logs `server/logs/<ts>-<session>-<turn>/screenshot.jpg + response.json`
+- [ ] `npm run typecheck` clean
+
+Done when: fixtures replay clean, logs prove each decision.
+
+### Person C - Voice + Demo + Show
+
+Setup: `cd demo-apps && docker compose up -d --build`, open `http://localhost:3000`, reset via `http://localhost:3001/reset`. Then `cd scripts/e2e && bash setup.sh && node suite.mjs --smoke`.
+
+- [ ] Whisper Nepali container green on `:8790` (`server/voice/*`)
+- [ ] TTS wrapper `extension/content/speech.js` works, fallback to text-only if no `ne-NP` voice
+- [ ] Hub `:3000` + Bank `:3001` green, login `eluu / 1234` works
+- [ ] Flow A: "pay my credit card bill" end-to-end
+- [ ] Flow B: Nepali goal on same Bank app end-to-end
+- [ ] Flow C: "tell me" goal (balance) ends with `show + done:true`
+- [ ] `node run-goal.mjs http://localhost:3001 "pay my credit card bill"` passes
+- [ ] `node suite.mjs --smoke` passes, `node visual.mjs` screenshots saved
+- [ ] Backup: offline screenshots + log folder + pre-recorded video if model drops
+
+Done when: 3 flows pass 3x in a row, video exported, reset works in under 5s.
