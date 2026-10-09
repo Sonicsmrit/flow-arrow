@@ -15,7 +15,7 @@ Flow Arrow is not a chatbot: there is no chat transcript, only a goal box and th
 | # | Decision | Why |
 |---|----------|-----|
 | D1 | Chrome extension (Manifest V3) | Reads the DOM, so rings are pixel-exact from `getBoundingClientRect()`; the model never guesses coordinates. |
-| D2 | Model provider is hosted Gemma 4 vision model (`MODEL_PROVIDER=gemma`, key `GEMMA_API_KEY` in `server/.env`) | Multimodal text+image in one call, strong instruction following, JSON mode. One provider keeps hackathon scope small; no fallback chain. |
+| D2 | Model provider is hosted Gemma 4 vision model (`MODEL_PROVIDER=gemma`, key `GEMMA_API_KEY` in `server/.env`). Chosen 2026-10-09: `gemma-4-26b-a4b-it` (bake-off 6/6 acc @ p50 ~3-5s, 0 failures; 31b-it disqualified on latency, p50 28s + timeouts; key exposes exactly 2 Gemma 4 models of 62). | Multimodal text+image in one call, strong instruction following, JSON mode. One provider keeps hackathon scope small; no fallback chain. |
 | D3 | Small local backend (Node 24, TypeScript run directly, `node:http`) | Keeps keys off the client, one place to swap prompts, logs every request with the exact screenshot the model saw. |
 | D4 | Extension in plain JS, no bundler | Edit, reload in `chrome://extensions`. Three laptops can review diffs without build artifacts. |
 | D5 | One step at a time loop (observe -> ask -> point -> wait -> repeat), **event-driven, never time-polled** | A model call happens only when something meaningful happens (user acted, page changed, target covered). Cheaper and faster than screenshots every 1-2 s. |
@@ -408,7 +408,7 @@ System prompt (bilingual core):
 
 Generic notes appended when they apply: `TODAY: <date>`; popup note (short list with dismiss button means popup open); repeat note (same step 3x or 3+ scrolls); filled-form note (all boxes filled after last click -> error stale, click submit); emptied-fields note (HISTORY-typed box now empty, e.g. after reload -> type again).
 
-Model config: JSON only via response schema; `temperature: 0`; `maxTokens` 300. Parse with `parseStepText` (strip fences, first `{...}` block), validate with `schema.ts`; one retry on failure.
+Model config: JSON only via response schema; `temperature: 0`; `thinking_level` minimal (A/B 2026-10-09: minimal beats thinking-off on speed, ~3.3s vs ~5.0s avg, at equal accuracy); no max-output cap (thinking tokens count toward it - truncating risks broken JSON); `maxTokens` 300. Parse with `parseStepText` (strip fences, first `{...}` block), validate with `schema.ts`; one retry on failure.
 
 Nepali cost note: Devanagari costs ~2x English tokens on this model family. History capped at 6 and screenshot at 1024px keep turns affordable.
 
@@ -442,7 +442,7 @@ Nepali cost note: Devanagari costs ~2x English tokens on this model family. Hist
 
 ## 15. Build order (12-24h)
 
-- **H0-1 (all):** freeze this doc. B verifies hosted Gemma 4 key with one fixture screenshot. C boots Hub+Bank. A loads empty extension shell.
+- **H0-1 (all):** freeze this doc. B verifies hosted Gemma 4 key with one fixture screenshot (done 2026-10-09: bake-off winner `gemma-4-26b-a4b-it`). C boots Hub+Bank. A loads empty extension shell.
 - **H1-4:** A: scanner + static ring + widget skeleton against `server/stub.json`. B: `/next-step` live on 2 fixture screens. C: Nepali Whisper transcribes 3 samples + demo login works.
 - **H4 check:** fake-step full loop (no AI): goal -> scan -> ring -> outcome -> settle.
 - **H4-8:** real loop wired, Nepali captions, TTS toggle, error states.
