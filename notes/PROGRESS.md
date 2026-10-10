@@ -2,24 +2,28 @@
 
 Checkpoint rollup, rewritten by Person C at H4/H8/H12 from `notes/journal/` + `git log`. Agents read this for state, the journal for detail.
 
-## H0 - Scaffold (2026-10-09)
+## H1 - Person C first pass (2026-10-10 morning)
 
 ### Done
-- Repo live with README, CLAUDE, AGENTS, ARCHITECTURE (sec 6 contracts frozen).
-- Skeleton: extension/, server/ (.env.example, package.json, stub.json), demo-apps/, scripts/e2e/.
-- Journal protocol adopted: fragment per commit + checkpoint rollups.
+- Himal Bank + Demo Hub boot on :3001/:3000 (`bac96ab`): bank-only compose, Himal rename, himalbank: prefix, bank-only popup settings.
+- Nepali Whisper container files + browser TTS wrapper (`5e2c16e`): whisper-small-nepali-ct2, lang ne, beam 5, speech.js with maybeSpeak and ne-NP/en-US voices.
+- Robot tester skeleton (`scripts/e2e/`): harness, run-goal, suite --smoke, voice, visual adapted to FLOW-ARROW-ROOT and fa-/flow-arrow- selectors.
+- B backend live on their LAN for integration day (`f0e44b2`).
 
-### Numbers (bake-off 2026-10-09, /tmp/bakeoff/bakeoff.py + rethink.py, 6 cases, identical inputs)
-- MODEL: `gemma-4-26b-a4b-it` | knobs: temperature 0, thinking_level minimal, no max-output cap
-- 26b-a4b-it: 6/6 acc, p50 ~3-5s, 0 badJSON/429/timeouts. 31b-it: 4/4 + 2 timeouts, p50 28s (out on latency).
-  Baseline flash-lite: 6/6, p50 8.27s (slower, not Gemma 4). Key exposes exactly 2 Gemma 4 models of 62.
-- Thinking minimal beats thinking-off (~3.3s vs ~5.0s avg, equal accuracy).
-- Bank EN+NE cases skipped (demo app down); re-run via `npm run try` once :3001 is live.
+### Numbers
+- Bank build: shared tsc + bank tsc/vite + hub tsc all clean.
+- Dev-server verify: Hub :3000 200 with bank-only settings, Bank :3001 200 titled Himal Bank, /login and /reset 200.
+- e2e scripts: 5/5 node --check pass. Smoke live run pending Chromium download + backend reachability.
+- Bake-off (B, 2026-10-09): gemma-4-26b-a4b-it 6/6, p50 ~3-5s.
 
 ### Known issues
-- None yet.
+- Docker daemon down on C laptop (WSL2 needs admin reboot); compose build unverified, Whisper image unbuilt.
+- B backend unreachable from C network; HERO and tell-me smoke scenarios gated on same-network integration.
+- speech.js landed but manifest line pending with A; speaker-toggle forwarding to setEnabled pending with A.
+- `gh auth login` token invalid on C laptop; push currently works via stored credentials.
 
 ### Next
-- B: wire `server/providers/gemma.ts` with these knobs, confirm via `npm run try` on a fixture. (Key verification: done.)
-- C: boot Hub + Bank demo skeleton.
-- A: widget + scanner skeleton against server/stub.json.
+- C: run suite --smoke widget scenario once Chromium lands; full HERO on integration network.
+- A: manifest speech.js line + speaker toggle wiring + live browser test on :3001.
+- B: keep backend reachable; confirm whisperStatus flips once C container runs.
+- Freeze features after H8 check; rehearse 90-sec demo.

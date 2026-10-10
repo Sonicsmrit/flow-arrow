@@ -1,0 +1,13 @@
+{
+  "name": "flow-arrow-e2e",
+  "private": true,
+  "type": "module",
+  "description": "Robot tester: drives the real unpacked Flow Arrow extension in Playwright Chromium against the Himal Bank demo app.",
+  "scripts": {
+    "smoke": "node suite.mjs --smoke",
+    "goal": "node run-goal.mjs"
+  },
+  "dependencies": {
+    "playwright": "1.63.0"
+  }
+}
