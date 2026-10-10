@@ -1,0 +1,26 @@
+services:
+  hub:
+    build:
+      context: .
+      dockerfile: hub/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - DATA_DIR=/data
+    volumes:
+      - hub-data:/data
+    restart: unless-stopped
+
+  bank:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+      args:
+        APP: bank
+    ports:
+      - "3001:80"
+    restart: unless-stopped
+
+volumes:
+  hub-data:
