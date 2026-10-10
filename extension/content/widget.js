@@ -141,6 +141,11 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
     ta.readOnly = voice !== "off";
     ta.value = voice === "off" ? draft : "";
     ta.addEventListener("input", () => (draft = ta.value));
+    // Never let page listeners see these keys (bubble phase), and never let
+    // a focused page field keep the keystrokes either (see focus below).
+    for (const type of ["keydown", "keyup", "keypress"]) {
+      ta.addEventListener(type, (e) => e.stopPropagation());
+    }
     ta.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -216,7 +221,19 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
           button(t("पठाउनुहोस्", "Send"), () => voice === "off" && submitGoal(ta.value), "flow-arrow-primary")
         );
         panelEl.append(row);
-        if (voice === "off") setTimeout(() => ta.isConnected && ta.focus(), 0);
+        if (voice === "off") {
+          setTimeout(() => {
+            if (!ta.isConnected) return;
+            // Steal focus from any page field so keystrokes land only here.
+            try {
+              const ae = document.activeElement;
+              if (ae && ae !== ta && !dockEl.contains(ae)) ae.blur();
+            } catch {
+              // ignore
+            }
+            ta.focus();
+          }, 0);
+        }
         break;
       }
       case "thinking":
