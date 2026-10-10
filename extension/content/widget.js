@@ -17,7 +17,26 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
   let sendTimer = 0;
   let voice = "off";
   let note = null;
-  let speak = false;
+  function getSpeak() {
+    try {
+      return localStorage.getItem("flowarrow-speak") === "true";
+    } catch {
+      return false;
+    }
+  }
+
+  function setSpeak(v) {
+    try {
+      localStorage.setItem("flowarrow-speak", v ? "true" : "false");
+    } catch {
+      // ignore, private mode
+    }
+  }
+
+  let speak = getSpeak();
+  if (globalThis.FlowArrow.speech && globalThis.FlowArrow.speech.setEnabled) {
+    globalThis.FlowArrow.speech.setEnabled(speak);
+  }
 
   function getLang() {
     try {
@@ -122,8 +141,12 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
     if (speak) btn.textContent = t("आवाज: चालु", "Voice: on");
     btn.addEventListener("click", () => {
       speak = !speak;
+      setSpeak(speak);
       btn.setAttribute("aria-pressed", speak ? "true" : "false");
       btn.textContent = speak ? t("आवाज: चालु", "Voice: on") : t("आवाज: बन्द", "Voice: off");
+      if (globalThis.FlowArrow.speech && globalThis.FlowArrow.speech.setEnabled) {
+        globalThis.FlowArrow.speech.setEnabled(speak);
+      }
       send({ type: "FLOW_SPEAK_TOGGLE", speak });
     });
     row.append(btn);

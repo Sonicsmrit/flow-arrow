@@ -21,7 +21,7 @@ FlowArrow.speech = (() => {
     try {
       const voices = s.getVoices();
       if (!voices || voices.length === 0) return null;
-      const prefix = lang === "ne" ? "ne" : "en-us";
+      const prefix = lang === "ne" ? "ne" : "en";
       return (
         voices.find((v) => v.lang && v.lang.toLowerCase().startsWith(prefix)) ||
         (lang === "ne"
@@ -38,7 +38,7 @@ FlowArrow.speech = (() => {
     if (!s || !text) return false;
     const useLang = lang || (NE_RANGE.test(text) ? "ne" : "en");
     const voice = pickVoice(s, useLang);
-    if (useLang === "ne" && !voice) return false; // text-only fallback
+    if (useLang === "ne" && !voice) return false; // text-only fallback for Nepali when no Nepali voice exists
     try {
       s.cancel();
       const u = new SpeechSynthesisUtterance(text);
@@ -48,6 +48,11 @@ FlowArrow.speech = (() => {
       } else {
         u.lang = useLang === "ne" ? "ne-NP" : "en-US";
       }
+      u.onerror = (e) => {
+        if (e.error !== "canceled" && e.error !== "interrupted") {
+          console.debug("[FlowArrow] TTS error:", e.error);
+        }
+      };
       s.speak(u);
       return true;
     } catch {
@@ -75,6 +80,10 @@ FlowArrow.speech = (() => {
     if (!enabled) cancel();
   }
 
+  function isEnabled() {
+    return enabled;
+  }
+
   // Warm the async voice cache in Chrome.
   try {
     const s = synth();
@@ -92,20 +101,19 @@ FlowArrow.speech = (() => {
     // ignore
   }
 
-  // Stop speech when the session ends or errors. This listener lives in our
-  // own file so Person A's files stay untouched.
+  // Handle messages affecting speech
   try {
     chrome.runtime.onMessage.addListener((msg) => {
-      if (
-        msg &&
-        (msg.type === "FLOW_ENDED" || msg.type === "FLOW_DONE" || msg.type === "FLOW_ERROR")
-      ) {
+      if (!msg) return;
+      if (msg.type === "FLOW_ENDED" || msg.type === "FLOW_ERROR") {
         cancel();
+      } else if (msg.type === "FLOW_SPEAK_TOGGLE") {
+        setEnabled(!!msg.speak);
       }
     });
   } catch {
     // ignore (not running as an extension content script)
   }
 
-  return { speak, maybeSpeak, cancel, setEnabled };
+  return { speak, maybeSpeak, cancel, setEnabled, isEnabled };
 })();

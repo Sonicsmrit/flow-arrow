@@ -5,8 +5,21 @@
 // backend's /transcribe, reply with the text.
 // NOTE: TRANSCRIBE_URL is localhost-only. Remote voice (tunnel/Render backend)
 // waits on Whisper placement; stage runs local where this works. (Person C.)
-const TRANSCRIBE_URL = "http://localhost:8787/transcribe";
+const DEFAULT_TRANSCRIBE_URL = "http://localhost:8787/transcribe";
 const MIN_BYTES = 1500; // shorter than this is a click, not speech
+
+async function getTranscribeUrl() {
+  try {
+    const res = await fetch(chrome.runtime.getURL("config.local.json"));
+    const cfg = await res.json();
+    if (cfg && typeof cfg.BACKEND_URL === "string" && cfg.BACKEND_URL) {
+      return `${cfg.BACKEND_URL.replace(/\/+$/, "")}/transcribe`;
+    }
+  } catch {
+    // default
+  }
+  return DEFAULT_TRANSCRIBE_URL;
+}
 
 let stream = null;
 let recorder = null;
@@ -49,7 +62,8 @@ async function stop() {
   chunks = [];
   if (blob.size < MIN_BYTES) return { ok: true, text: "" };
   try {
-    const res = await fetch(TRANSCRIBE_URL, {
+    const url = await getTranscribeUrl();
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "audio/webm" },
       body: blob,

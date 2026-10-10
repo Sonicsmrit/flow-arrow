@@ -18,6 +18,7 @@
         "content/watcher.js",
         "content/widget.js",
         "content/voice.js",
+        "content/speech.js",
         "content/main.js"
       ],
       "run_at": "document_idle",
