@@ -1,5 +1,6 @@
 import type http from "node:http";
 import type { Lang } from "./schema.ts";
+import { globalKeyPool } from "./keypool.ts";
 
 // POST /transcribe (ARCHITECTURE 6.2): raw audio bytes (audio/webm) in,
 // { ok, text, lang, latencyMs } out. Forwards to the local Nepali Whisper
@@ -57,35 +58,42 @@ export async function transcribe(audio: Buffer): Promise<TranscribeResponse> {
   }
 
   // 2. Multimodal cloud STT fallback using the configured GEMMA_API_KEY
-  const apiKey = process.env.GEMMA_API_KEY || process.env.GEMINI_API_KEY;
-  if (apiKey) {
-    try {
-      const { GoogleGenAI } = await import("@google/genai");
-      const ai = new GoogleGenAI({ apiKey });
-      const timeout = AbortSignal.timeout(TIMEOUT_MS);
-      const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { inlineData: { mimeType: "audio/webm", data: audio.toString("base64") } },
-              {
-                text: "Transcribe the spoken audio verbatim in its native language (English or Nepali). Output ONLY the transcribed words with no formatting, markdown, quotes, or conversational commentary.",
-              },
-            ],
+  if (globalKeyPool.size > 0) {
+    const maxAttempts = Math.min(globalKeyPool.size, 3);
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const apiKey = globalKeyPool.current();
+      if (!apiKey) break;
+      try {
+        const { GoogleGenAI } = await import("@google/genai");
+        const ai = new GoogleGenAI({ apiKey });
+        const timeout = AbortSignal.timeout(TIMEOUT_MS);
+        const response = await ai.models.generateContent({
+          model: "gemini-3.6-flash",
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { inlineData: { mimeType: "audio/webm", data: audio.toString("base64") } },
+                {
+                  text: "Transcribe the spoken audio verbatim in its native language (English or Nepali). Output ONLY the transcribed words with no formatting, markdown, quotes, or conversational commentary.",
+                },
+              ],
+            },
+          ],
+          config: {
+            abortSignal: timeout,
+            temperature: 0,
           },
-        ],
-        config: {
-          abortSignal: timeout,
-          temperature: 0,
-        },
-      });
+        });
 
-      const text = (response.text || "").trim();
-      return { ok: true, text, lang: detectLang(text), latencyMs: Date.now() - start };
-    } catch (err) {
-      console.error("[transcribe] GenAI fallback error:", err);
+        const text = (response.text || "").trim();
+        return { ok: true, text, lang: detectLang(text), latencyMs: Date.now() - start };
+      } catch (err) {
+        console.error(`[transcribe] GenAI attempt ${attempt + 1} failed:`, err);
+        if (globalKeyPool.size > 1) {
+          globalKeyPool.rotate();
+        }
+      }
     }
   }
 

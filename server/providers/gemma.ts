@@ -1,6 +1,7 @@
 import { ApiError, GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { STEP_JSON_SCHEMA, parseStepText, type NextStepRequest } from "../schema.ts";
 import { SYSTEM_PROMPT, buildUserText } from "../prompt.ts";
+import { globalKeyPool } from "../keypool.ts";
 import {
   ProviderError,
   UnparsableOutput,
@@ -16,14 +17,15 @@ const TIMEOUT_MS = 15_000;
 // speed (~3.3s vs ~5.0s avg) at equal accuracy.
 export const DEFAULT_GEMMA_MODEL = "gemma-4-26b-a4b-it";
 
-// Returns null when GEMMA_API_KEY is not set, so the server refuses to boot
-// with a clear message instead of failing every turn.
+// Returns null when no keys are available in KeyPool
 export function createGemmaProvider(model = process.env.GEMMA_MODEL || DEFAULT_GEMMA_MODEL): Provider | null {
-  const apiKey = process.env.GEMMA_API_KEY;
-  if (!apiKey) return null;
-  const ai = new GoogleGenAI({ apiKey });
+  if (globalKeyPool.size === 0) return null;
 
   async function callOnce(req: NextStepRequest, extraNote: string | undefined, signal: AbortSignal | undefined): Promise<ProviderResult> {
+    const apiKey = globalKeyPool.current();
+    if (!apiKey) throw new ProviderError("No GEMMA_API_KEY available in pool", { authFailed: true });
+
+    const ai = new GoogleGenAI({ apiKey });
     const userText = buildUserText(req) + (extraNote ? `\nNOTE: ${extraNote}` : "");
     const timeout = AbortSignal.timeout(TIMEOUT_MS);
     const combined = signal ? AbortSignal.any([signal, timeout]) : timeout;
@@ -48,9 +50,6 @@ export function createGemmaProvider(model = process.env.GEMMA_MODEL || DEFAULT_G
           temperature: 0,
           maxOutputTokens: 1000,
           abortSignal: combined,
-          // 1000: proven over ~40 calls with zero truncations. 500 starved the
-          // output under JSON-schema mode (model emitted empty instruction
-          // rather than cutting mid-stream). Do not lower without an A/B.
         },
       });
 
@@ -70,16 +69,24 @@ export function createGemmaProvider(model = process.env.GEMMA_MODEL || DEFAULT_G
       if (signal?.aborted) throw new ProviderError("Gemma request aborted", { retryable: true });
       if (timeout.aborted) throw new ProviderError("Gemma request timed out after 15s", { retryable: true });
 
-      // Classify by the HTTP status (ApiError.status). Matching digits in the
-      // message text misfires: a 429 quota message contains other numbers.
       const message = err instanceof Error ? err.message : String(err);
       const status = err instanceof ApiError ? err.status : 0;
-      if (status === 401 || status === 403 || /API key not valid|API_KEY_INVALID/i.test(message)) {
-        throw new ProviderError(`Gemma rejected the API key: ${message.slice(0, 200)}`, { authFailed: true });
-      }
-      if (status === 429) {
+
+      // Rate limit, quota exhaustion, or invalid key -> rotate key in pool if available
+      if (status === 429 || /rate limit|quota|resource_exhausted/i.test(message)) {
+        if (globalKeyPool.size > 1) {
+          globalKeyPool.rotate();
+        }
         throw new ProviderError(`Gemma rate limit / quota: ${message.slice(0, 160)}`, { retryable: true });
       }
+
+      if (status === 401 || status === 403 || /API key not valid|API_KEY_INVALID/i.test(message)) {
+        if (globalKeyPool.size > 1) {
+          globalKeyPool.rotate();
+        }
+        throw new ProviderError(`Gemma rejected the API key: ${message.slice(0, 200)}`, { authFailed: true, retryable: true });
+      }
+
       if (status >= 500) {
         throw new ProviderError(`Gemma unavailable (${status}): ${message.slice(0, 160)}`, { retryable: true });
       }
@@ -93,11 +100,10 @@ export function createGemmaProvider(model = process.env.GEMMA_MODEL || DEFAULT_G
     getNextStep(req, extraNote, signal) {
       const run = () => withParseRetry("gemma", () => callOnce(req, extraNote, signal));
       return run().catch(async (err) => {
-        // Anti-429: transient rate limits clear in seconds. One hidden retry
-        // with backoff; a second failure surfaces as retryable ("Try again").
-        if (err instanceof ProviderError && err.retryable && /rate limit|429|quota/i.test(err.message)) {
-          console.warn("gemma: 429, backing off once before retrying");
-          await new Promise((r) => setTimeout(r, 8000 + Math.random() * 2000));
+        // If 429 / quota / auth error occurred and we have rotated or can retry with another key
+        if (err instanceof ProviderError && err.retryable && (/rate limit|429|quota|rejected/i.test(err.message))) {
+          console.warn("[gemma] Retrying with rotated key after quota/rate limit error...");
+          await new Promise((r) => setTimeout(r, 1000));
           return run();
         }
         throw err;

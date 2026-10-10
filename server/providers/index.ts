@@ -9,7 +9,7 @@ export type { Provider } from "./types.ts";
 // boot without a key instead of failing every turn.
 const provider: Provider | null = createGemmaProvider();
 if (!provider) {
-  throw new Error("GEMMA_API_KEY is not set in server/.env");
+  throw new Error("No Gemini/Gemma API key configured. Set GEMMA_API_KEY or GEMMA_API_KEYS in server/.env");
 }
 const active: Provider = provider;
 
