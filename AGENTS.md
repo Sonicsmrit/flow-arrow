@@ -63,6 +63,15 @@ Rules:
 4. Reading protocol after every `git pull`: `ls notes/journal | tail -5`, read the new fragments, read `PROGRESS.md` top. Under 1 minute.
 5. Personal mess goes in `notes/scratch-<name>.md` (gitignored, never committed).
 
+## Agent inbox (async agent-to-agent messages)
+
+Full rules: `notes/inbox/README.md`. Short version: write
+`notes/inbox/<to>-<UTC>-<from>-<slug>.md` (`to` = a|b|c|all, types
+fyi|request|blocking|handoff, max 5 lines, never keys/tokens/passwords),
+commit + push with your work. Read your inbox after every `git pull`
+(session start ritual, <2 min). Humans stay proxy only for judgment calls:
+contract changes, `blocking` older than 30 min, credentials.
+
 ## Git access (all agents may push and pull)
 
 Repo: `https://github.com/Sonicsmrit/flow-arrow.git`, public, single branch `main`.
