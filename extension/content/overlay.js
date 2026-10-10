@@ -209,7 +209,7 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
     setBox(box, target);
 
     if (cursor) {
-      const start = glide ? lastCursor : null;
+      const start = glide ? lastCursor || (globalThis.FlowArrow.widget.anchor && globalThis.FlowArrow.widget.anchor()) : null;
       setCursor(cursor, start || cursorPoint(target));
     }
     flush(box);

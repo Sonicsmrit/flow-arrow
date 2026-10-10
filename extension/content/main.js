@@ -37,6 +37,18 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
 
     globalThis.FlowArrow.widget.build(shadow);
 
+    let lastScanResult = null;
+
+    function sendMsg(message) {
+      try {
+        chrome.runtime.sendMessage(message, () => {
+          if (chrome.runtime.lastError) return;
+        });
+      } catch {
+        // SW not ready, ignore
+      }
+    }
+
     // Inbound handlers for Person B step loop (section 6.3).
     chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       if (!msg || typeof msg.type !== "string") return;
@@ -46,9 +58,9 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
         if (host) host.style.visibility = "hidden";
         requestAnimationFrame(() => requestAnimationFrame(() => {
           try {
-            const result = globalThis.FlowArrow.scanner.scan();
+            lastScanResult = globalThis.FlowArrow.scanner.scan();
             if (host) host.style.visibility = "";
-            sendResponse({ ok: true, scanId: result.scanId, page: result.page, elements: result.elements });
+            sendResponse({ ok: true, scanId: lastScanResult.scanId, page: lastScanResult.page, elements: lastScanResult.elements });
           } catch (err) {
             if (host) host.style.visibility = "";
             sendResponse({ ok: false, error: String(err) });
@@ -59,18 +71,26 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
         const host = document.querySelector("flow-arrow-root");
         if (host) host.style.visibility = "";
         if (DEBUG) console.debug("[FlowArrow] thinking", msg.turn);
+        globalThis.FlowArrow.widget.setState("thinking", { goal: msg.goal });
         sendResponse({ ok: true });
       } else if (msg.type === "FLOW_STEP") {
         const host = document.querySelector("flow-arrow-root");
         if (host) host.style.visibility = "";
         try {
+          const needsElement = msg.step.action === "click" || msg.step.action === "type" || msg.step.action === "show";
           const el = msg.step.elementId != null
             ? globalThis.FlowArrow.scanner.getElement(msg.step.elementId)
             : null;
-          if (msg.step.elementId != null && !el) {
+          // The page moved on since the scan: the step no longer matches.
+          const stale =
+            !lastScanResult ||
+            lastScanResult.page.url !== location.href ||
+            (needsElement && (!el || !el.isConnected));
+          if (stale) {
             sendResponse({ ok: false, reason: "element_missing" });
             return;
           }
+          globalThis.FlowArrow.widget.setState("guiding");
           globalThis.FlowArrow.overlay.showStep(msg.step, el, msg.turn);
           if (globalThis.FlowArrow.speech && msg.step) {
             globalThis.FlowArrow.speech.maybeSpeak(msg.step.instruction);
@@ -111,23 +131,51 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
         if (host) host.style.visibility = "";
         globalThis.FlowArrow.watcher.disarm();
         globalThis.FlowArrow.overlay.clear();
+        globalThis.FlowArrow.widget.setState("error", { message: msg.message, retryable: msg.retryable });
         sendResponse({ ok: true });
-      } else if (msg.type === "FLOW_ENDED" || msg.type === "FLOW_DONE") {
+      } else if (msg.type === "FLOW_DONE") {
         const host = document.querySelector("flow-arrow-root");
         if (host) host.style.visibility = "";
         globalThis.FlowArrow.watcher.disarm();
         globalThis.FlowArrow.overlay.clear();
-        globalThis.FlowArrow.widget.render(shadow, false);
+        globalThis.FlowArrow.widget.setState("done", { message: msg.message });
+        sendResponse({ ok: true });
+      } else if (msg.type === "FLOW_ENDED") {
+        const host = document.querySelector("flow-arrow-root");
+        if (host) host.style.visibility = "";
+        globalThis.FlowArrow.watcher.disarm();
+        globalThis.FlowArrow.overlay.clear();
+        if (globalThis.FlowArrow.widget.inSession()) globalThis.FlowArrow.widget.setState("idle");
         sendResponse({ ok: true });
       }
     });
 
-    // Announce presence so SW HELLO flow (Person B) can restore sessions.
-    try {
-      chrome.runtime.sendMessage({ type: "FLOW_HELLO", url: location.href });
-    } catch {
-      // SW not installed yet, ignore
+    // FLOW_HELLO once the page is loaded and quiet, so the SW can resume a
+    // session across page loads. The widget restores itself from the reply.
+    async function hello() {
+      try {
+        if (document.readyState !== "complete") {
+          await new Promise((r) => {
+            window.addEventListener("load", r, { once: true });
+            setTimeout(r, 4000);
+          });
+        }
+        await globalThis.FlowArrow.dom.waitForSettle({ quietMs: 500, maxMs: 4000 });
+      } catch {
+        // settle helper missing, continue anyway
+      }
+      try {
+        chrome.runtime.sendMessage({ type: "FLOW_HELLO", url: location.href }, (reply) => {
+          if (chrome.runtime.lastError) return;
+          const session = reply && reply.session;
+          if (!session) return;
+          globalThis.FlowArrow.widget.setState("thinking", { goal: session.goal });
+        });
+      } catch {
+        // SW not installed yet, ignore
+      }
     }
+    hello();
   }
 
   if (document.readyState === "loading") {
