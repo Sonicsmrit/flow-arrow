@@ -126,7 +126,10 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
             } catch {
               // SW gone, ignore
             }
-            globalThis.FlowArrow.dom.waitForSettle().then(() => {
+            const settle = (globalThis.FlowArrow.dom && globalThis.FlowArrow.dom.waitForSettle)
+              ? globalThis.FlowArrow.dom.waitForSettle()
+              : Promise.resolve();
+            settle.catch(() => {}).then(() => {
               try {
                 chrome.runtime.sendMessage({ type: "FLOW_READY", turn: msg.turn + 1 });
               } catch {
@@ -194,6 +197,20 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
       }
     }
     hello();
+
+    // SPA frameworks (like GitHub Turbo) might replace the body or documentElement content,
+    // deleting our widget. Observe and re-mount if we are deleted.
+    if (!globalThis.FlowArrow._observer) {
+      globalThis.FlowArrow._observer = new MutationObserver(() => {
+        if (!document.querySelector("flow-arrow-root")) {
+          mount();
+        }
+      });
+      globalThis.FlowArrow._observer.observe(document.documentElement, { childList: true, subtree: false });
+      if (document.body) {
+        globalThis.FlowArrow._observer.observe(document.body, { childList: true, subtree: false });
+      }
+    }
   }
 
   if (document.readyState === "loading") {
