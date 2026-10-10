@@ -25,6 +25,24 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
 
   function mount() {
     if (document.querySelector("flow-arrow-root")) return;
+
+    const patch = document.createElement("script");
+    patch.textContent = `
+      try {
+        const origTarget = Object.getOwnPropertyDescriptor(Event.prototype, 'target').get;
+        const dummy = document.createElement('input');
+        Object.defineProperty(KeyboardEvent.prototype, 'target', {
+          get: function() {
+            const t = origTarget.call(this);
+            if (t && t.nodeName === 'FLOW-ARROW-ROOT') return dummy;
+            return t;
+          }
+        });
+      } catch(e) {}
+    `;
+    document.documentElement.appendChild(patch);
+    patch.remove();
+
     const host = document.createElement("flow-arrow-root");
     document.documentElement.appendChild(host);
     const shadow = host.attachShadow({ mode: "closed" });
