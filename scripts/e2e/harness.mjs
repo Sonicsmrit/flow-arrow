@@ -5,9 +5,11 @@
 import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const EXT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "../../extension");
-export const HERE = path.dirname(new URL(import.meta.url).pathname);
+const SELF = fileURLToPath(import.meta.url);
+export const EXT = path.resolve(path.dirname(SELF), "../../extension");
+export const HERE = path.dirname(SELF);
 export const OUT = path.join(HERE, ".out"); // screenshots + throwaway profiles (gitignored)
 export const LOGS = path.resolve(HERE, "../../server/logs");
 export const REPO = path.resolve(HERE, "../..");
@@ -36,6 +38,9 @@ export async function launch({ headless = true, zoom = 1 } = {}) {
   fs.mkdirSync(OUT, { recursive: true });
   const dir = fs.mkdtempSync(path.join(OUT, "profile-"));
   const ctx = await chromium.launchPersistentContext(dir, {
+    // Bundled Chromium (PLAYWRIGHT_BROWSERS_PATH can move it off a full disk).
+    // Branded Google Chrome ignores --load-extension, so channel "chrome"
+    // can never load the unpacked extension here.
     channel: "chromium",
     headless,
     viewport: { width: Math.round(VW / zoom), height: Math.round(VH / zoom) },
