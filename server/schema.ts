@@ -117,6 +117,8 @@ const ELEMENT_ROLES = new Set([
   "menuitem",
   "option",
   "switch",
+  "heading",
+  "text",
   "other",
 ]);
 

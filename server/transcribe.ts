@@ -38,22 +38,58 @@ async function readAudio(req: http.IncomingMessage): Promise<Buffer | null> {
 
 export async function transcribe(audio: Buffer): Promise<TranscribeResponse> {
   const start = Date.now();
-  let res: Response;
+
+  // 1. Try local Whisper container if available
   try {
-    res = await fetch(`${WHISPER_URL}/transcribe`, {
+    const res = await fetch(`${WHISPER_URL}/transcribe`, {
       method: "POST",
       headers: { "Content-Type": "audio/webm" },
       body: new Uint8Array(audio),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(3000), // Fast check for local whisper
     });
-  } catch (err) {
-    const timedOut = err instanceof Error && err.name === "TimeoutError";
-    return { ok: false, error: timedOut ? VOICE_ERRORS.timeout : VOICE_ERRORS.down };
+    if (res.ok) {
+      const body = (await res.json()) as { text?: string };
+      const text = (body.text || "").trim();
+      return { ok: true, text, lang: detectLang(text), latencyMs: Date.now() - start };
+    }
+  } catch {
+    // Whisper unreachable, fall back to Google GenAI audio transcription
   }
-  if (!res.ok) return { ok: false, error: `whisper_http_${res.status}` };
-  const body = (await res.json()) as { text?: string };
-  const text = (body.text || "").trim();
-  return { ok: true, text, lang: detectLang(text), latencyMs: Date.now() - start };
+
+  // 2. Multimodal cloud STT fallback using the configured GEMMA_API_KEY
+  const apiKey = process.env.GEMMA_API_KEY || process.env.GEMINI_API_KEY;
+  if (apiKey) {
+    try {
+      const { GoogleGenAI } = await import("@google/genai");
+      const ai = new GoogleGenAI({ apiKey });
+      const timeout = AbortSignal.timeout(TIMEOUT_MS);
+      const response = await ai.models.generateContent({
+        model: "gemini-3.8-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { inlineData: { mimeType: "audio/webm", data: audio.toString("base64") } },
+              {
+                text: "Transcribe the spoken audio verbatim in its native language (English or Nepali). Output ONLY the transcribed words with no formatting, markdown, quotes, or conversational commentary.",
+              },
+            ],
+          },
+        ],
+        config: {
+          abortSignal: timeout,
+          temperature: 0,
+        },
+      });
+
+      const text = (response.text || "").trim();
+      return { ok: true, text, lang: detectLang(text), latencyMs: Date.now() - start };
+    } catch (err) {
+      console.error("[transcribe] GenAI fallback error:", err);
+    }
+  }
+
+  return { ok: false, error: VOICE_ERRORS.down };
 }
 
 export async function handleTranscribe(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
