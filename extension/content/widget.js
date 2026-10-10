@@ -355,6 +355,14 @@ globalThis.FlowArrow = globalThis.FlowArrow || {};
 
     dockEl.append(panelEl, launcherEl);
     shadow.appendChild(dockEl);
+
+    // Keystrokes typed in the goal box must never reach the page: global
+    // page shortcuts (and focused page fields) would react to them. Events
+    // from inside the shadow tree still propagate to document, so stop them
+    // at the dock. Our own handlers sit on inner elements and run first.
+    for (const type of ["keydown", "keyup", "keypress"]) {
+      dockEl.addEventListener(type, (e) => e.stopPropagation());
+    }
     render();
   }
 
