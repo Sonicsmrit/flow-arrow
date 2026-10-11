@@ -1,6 +1,6 @@
 // Goal "sign in": exercises type/type/click steps and the DONE path.
 import { launch, startGoal, nextUserState, doStep, shot, flowUi, waitUi, hubSetPopups } from "./harness.mjs";
-await hubSetPopups({ bank: 0, pharmacy: 0.4, grocery: 0.2 });
+await hubSetPopups({ bank: 0 });
 const { ctx, sw, page } = await launch();
 await page.goto("http://localhost:3001/reset"); await page.waitForURL("http://localhost:3001/"); await page.waitForTimeout(1200);
 await startGoal(page, "sign in to my account");
@@ -17,5 +17,5 @@ await shot(page, "signin-done");
 await page.waitForTimeout(3300);
 const after = await flowUi(page);
 console.log("after 3.3s:", after.state);
-await hubSetPopups({ bank: 0.33, pharmacy: 0.4, grocery: 0.2 });
+await hubSetPopups({ bank: 0.33 });
 await ctx.close();

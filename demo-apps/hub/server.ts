@@ -101,6 +101,19 @@ async function handle(req: http.IncomingMessage, res: http.ServerResponse): Prom
         );
         return;
       }
+      // Fail fast on stale callers: this hub is bank-only (pharmacy/grocery
+      // were cut for hackathon scope). Silently ignoring unknown keys hid
+      // exactly this kind of drift, so reject instead.
+      const unknown = Object.keys(p).filter((k) => k !== "bank");
+      if (unknown.length > 0) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: `unknown popup keys: ${unknown.join(", ")} (this hub is bank-only)`,
+          }),
+        );
+        return;
+      }
       const popups: Popups = {
         bank: round2(p.bank),
       };

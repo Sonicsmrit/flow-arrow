@@ -23,14 +23,14 @@ async function login() {
 }
 
 if (which === "popup") {
-  await hubSetPopups({ bank: 1, pharmacy: 0.4, grocery: 0.2 });
+  await hubSetPopups({ bank: 1 });
   await page.goto("http://localhost:3001/reset"); await page.waitForURL("http://localhost:3001/"); await page.waitForTimeout(1200);
   await startGoal(page, "pay my credit card bill");
   await follow(6, "popup", (s) => /paperless|popup|close|later|dialog/i.test(s.currentStep.instruction) && false);
 }
 
 if (which === "logout") {
-  await hubSetPopups({ bank: 0, pharmacy: 0.4, grocery: 0.2 });
+  await hubSetPopups({ bank: 0 });
   await page.goto("http://localhost:3001/reset"); await page.waitForURL("http://localhost:3001/"); await page.waitForTimeout(800);
   await login();
   await page.getByRole("link", { name: "Pay card" }).or(page.getByRole("button", { name: "Pay card" })).first().click();
@@ -46,17 +46,11 @@ if (which === "logout") {
 }
 
 if (which === "covered") {
-  await hubSetPopups({ bank: 0.33, pharmacy: 0.4, grocery: 1 });
-  await page.goto("http://localhost:3003/reset"); await page.waitForURL("http://localhost:3003/"); await page.waitForTimeout(800);
-  await page.goto("http://localhost:3003/search?q=milk"); 
-  await page.waitForTimeout(600);
-  await startGoal(page, "add whole milk to my cart");
-  const st = await nextUserState(sw, 0);
-  console.log(`  t${st.s.turn} ${st.s.currentStep.action} "${st.s.currentStep.instruction}" (user waits, promo appears)`);
-  const st2 = await nextUserState(sw, st.s.turn, 20000);
-  console.log(`  prev outcome: ${st2.s.history.slice(-1)[0].outcome}`);
-  await follow(3, "covered");
+  // SKIPPED: covered-target promo test needs the grocery app (:3003), which is
+  // not in this build (bank-only hub). The bank paperless modal covers the
+  // same popup-handling path; see the "popup" branch above.
+  console.log("SKIP covered: grocery app absent in this build (see ARCHITECTURE out-of-scope)");
 }
 console.log(swLogs.filter((l) => /->|check-in|hello|error/.test(l)).map((l) => l.slice(14)).join("\n"));
-await hubSetPopups({ bank: 0.33, pharmacy: 0.4, grocery: 0.2 });
+await hubSetPopups({ bank: 0.33 });
 await ctx.close();
