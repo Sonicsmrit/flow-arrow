@@ -2,6 +2,8 @@ server/.env
 config.local.json
 extension/config.local.json
 server/logs/
+server/server.log
+server/tts_cache.json
 node_modules/
 demo-apps/*/node_modules/
 demo-apps/*/dist/

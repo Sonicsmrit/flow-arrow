@@ -5,6 +5,7 @@ import { decideStep } from "./decide.ts";
 import { buildUserText } from "./prompt.ts";
 import { logTurn } from "./logger.ts";
 import { handleTranscribe, whisperStatus } from "./transcribe.ts";
+import { handleTTS } from "./tts.ts";
 
 const PORT = Number(process.env.PORT) || 8787;
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
@@ -154,6 +155,14 @@ const server = http.createServer((req, res) => {
   if (req.method === "POST" && req.url === "/transcribe") {
     handleTranscribe(req, res).catch((err) => {
       console.error("Unhandled error in /transcribe:", err);
+      sendJson(res, 500, { ok: false, error: "Internal server error" });
+    });
+    return;
+  }
+
+  if (req.method === "POST" && req.url === "/tts") {
+    handleTTS(req, res).catch((err) => {
+      console.error("Unhandled error in /tts:", err);
       sendJson(res, 500, { ok: false, error: "Internal server error" });
     });
     return;
